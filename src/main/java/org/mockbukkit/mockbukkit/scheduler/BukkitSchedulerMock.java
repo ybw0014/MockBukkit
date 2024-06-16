@@ -310,7 +310,7 @@ public class BukkitSchedulerMock implements BukkitScheduler
 				}
 				catch (ExecutionException e)
 				{
-					throw new RuntimeException(e);
+					throw new AsyncTaskException(e);
 				}
 			}
 		}
