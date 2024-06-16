@@ -8,10 +8,9 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.profile.PlayerProfile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.mockbukkit.mockbukkit.UnimplementedOperationException;
+import org.mockbukkit.mockbukkit.exception.UnimplementedOperationException;
 import org.mockbukkit.mockbukkit.entity.OfflinePlayerMock;
 import org.mockbukkit.mockbukkit.profile.PlayerProfileMock;
-import org.mockbukkit.mockbukkit.ServerMock;
 
 import java.util.Objects;
 import java.util.UUID;

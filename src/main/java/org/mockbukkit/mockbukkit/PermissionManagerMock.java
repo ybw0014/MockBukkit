@@ -5,6 +5,7 @@ import org.bukkit.permissions.Permissible;
 import org.bukkit.permissions.Permission;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.mockbukkit.mockbukkit.exception.UnimplementedOperationException;
 
 import java.util.List;
 import java.util.Set;

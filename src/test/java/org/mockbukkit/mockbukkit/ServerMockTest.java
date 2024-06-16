@@ -1,7 +1,5 @@
 package org.mockbukkit.mockbukkit;
 
-import org.mockbukkit.mockbukkit.CachedServerIconMock;
-import org.mockbukkit.mockbukkit.MockBukkit;
 import org.mockbukkit.mockbukkit.command.CommandResult;
 import org.mockbukkit.mockbukkit.configuration.ServerConfiguration;
 import org.mockbukkit.mockbukkit.entity.EntityMock;
@@ -9,6 +7,7 @@ import org.mockbukkit.mockbukkit.entity.OfflinePlayerMock;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
 import org.mockbukkit.mockbukkit.entity.PlayerMockFactory;
 import org.mockbukkit.mockbukkit.entity.SimpleEntityMock;
+import org.mockbukkit.mockbukkit.exception.UnimplementedOperationException;
 import org.mockbukkit.mockbukkit.inventory.AnvilInventoryMock;
 import org.mockbukkit.mockbukkit.inventory.BarrelInventoryMock;
 import org.mockbukkit.mockbukkit.inventory.BeaconInventoryMock;

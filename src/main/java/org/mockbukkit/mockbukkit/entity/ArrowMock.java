@@ -10,8 +10,7 @@ import org.bukkit.potion.PotionType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.mockbukkit.mockbukkit.ServerMock;
-import org.mockbukkit.mockbukkit.UnimplementedOperationException;
-import org.mockbukkit.mockbukkit.entity.AbstractArrowMock;
+import org.mockbukkit.mockbukkit.exception.UnimplementedOperationException;
 
 import java.util.List;
 import java.util.UUID;

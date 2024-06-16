@@ -6,7 +6,7 @@ import org.bukkit.block.Conduit;
 import org.bukkit.entity.LivingEntity;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.mockbukkit.mockbukkit.UnimplementedOperationException;
+import org.mockbukkit.mockbukkit.exception.UnimplementedOperationException;
 
 /**
  * Mock implementation of a {@link Conduit}.

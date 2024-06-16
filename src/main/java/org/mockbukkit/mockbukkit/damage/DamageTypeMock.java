@@ -10,7 +10,7 @@ import org.bukkit.damage.DamageScaling;
 import org.bukkit.damage.DamageType;
 import org.bukkit.damage.DeathMessageType;
 import org.jetbrains.annotations.NotNull;
-import org.mockbukkit.mockbukkit.UnimplementedOperationException;
+import org.mockbukkit.mockbukkit.exception.UnimplementedOperationException;
 
 public class DamageTypeMock implements DamageType
 {

@@ -8,6 +8,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.mockbukkit.mockbukkit.exception.TagMisconfigurationException;
 
 import java.io.FileNotFoundException;
 import java.util.HashSet;

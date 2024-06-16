@@ -89,6 +89,7 @@ import org.mockbukkit.mockbukkit.entity.WitherSkullMock;
 import org.mockbukkit.mockbukkit.entity.WolfMock;
 import org.mockbukkit.mockbukkit.entity.ZombieHorseMock;
 import org.mockbukkit.mockbukkit.entity.ZombieMock;
+import org.mockbukkit.mockbukkit.exception.UnimplementedOperationException;
 import org.mockbukkit.mockbukkit.generator.BiomeProviderMock;
 import org.mockbukkit.mockbukkit.metadata.MetadataTable;
 import org.mockbukkit.mockbukkit.persistence.PersistentDataContainerMock;

@@ -1,20 +1,16 @@
 package org.mockbukkit.mockbukkit.entity;
 
 import org.mockbukkit.mockbukkit.ServerMock;
-import org.mockbukkit.mockbukkit.UnimplementedOperationException;
+import org.mockbukkit.mockbukkit.exception.UnimplementedOperationException;
 import com.google.common.base.Preconditions;
-import io.papermc.paper.entity.TeleportFlag;
-import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.block.Block;
 import org.bukkit.entity.AbstractArrow;
-import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 public class AbstractArrowMock extends AbstractProjectileMock implements AbstractArrow
 {

@@ -2,6 +2,8 @@ package org.mockbukkit.mockbukkit;
 
 import org.mockbukkit.mockbukkit.damage.DamageTypeMock;
 import org.mockbukkit.mockbukkit.enchantments.EnchantmentMock;
+import org.mockbukkit.mockbukkit.exception.ReflectionAccessException;
+import org.mockbukkit.mockbukkit.exception.UnimplementedOperationException;
 import org.mockbukkit.mockbukkit.generator.structure.StructureMock;
 import org.mockbukkit.mockbukkit.generator.structure.StructureTypeMock;
 import org.mockbukkit.mockbukkit.inventory.meta.trim.TrimMaterialMock;
