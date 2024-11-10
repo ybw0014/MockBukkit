@@ -8,6 +8,7 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CancellationException;
@@ -22,14 +23,14 @@ public class ScheduledTask implements BukkitTask, BukkitWorker
 	private final int id;
 	private final Plugin plugin;
 	private final boolean isSync;
-	private boolean isCancelled = false;
-	private long scheduledTick;
-	private boolean running;
+	private volatile boolean isCancelled = false;
+	private volatile long scheduledTick;
+	private volatile boolean running;
 	private final @Nullable Runnable runnable;
 	private final @Nullable Consumer<? super BukkitTask> consumer;
-	private final List<Runnable> cancelListeners = new LinkedList<>();
-	private Thread thread;
-	private boolean submitted = false;
+	private final List<Runnable> cancelListeners = Collections.synchronizedList(new LinkedList<>());
+	private volatile Thread thread;
+	private volatile boolean submitted = false;
 
 	/**
 	 * Constructs a new {@link ScheduledTask} with the provided parameters.
@@ -82,7 +83,6 @@ public class ScheduledTask implements BukkitTask, BukkitWorker
 		this.running = false;
 	}
 
-
 	/**
 	 * @return Whether the task is running.
 	 */
@@ -98,11 +98,10 @@ public class ScheduledTask implements BukkitTask, BukkitWorker
 	 * @param running Whether the task is running.
 	 */
 	@ApiStatus.Internal
-	public void setRunning(boolean running)
+	protected void setRunning(boolean running)
 	{
 		this.running = running;
 	}
-
 
 	/**
 	 * Get the tick at which the task is scheduled to run at.
@@ -119,6 +118,7 @@ public class ScheduledTask implements BukkitTask, BukkitWorker
 	 *
 	 * @param scheduledTick The tick at which the task is scheduled to run at.
 	 */
+	@ApiStatus.Internal
 	protected void setScheduledTick(long scheduledTick)
 	{
 		this.scheduledTick = scheduledTick;

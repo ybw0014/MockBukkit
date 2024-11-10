@@ -49,13 +49,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.jar.JarFile;
@@ -74,11 +75,13 @@ public class PluginManagerMock extends PermissionManagerMock implements PluginMa
 	private static final Pattern VALID_PLUGIN_NAMES = Pattern.compile("^[A-Za-z0-9_.-]+$");
 
 	private final @NotNull ServerMock server;
+
+	// These fields must be accessed only while synchronizing on PluginManagerMock.this
 	private final List<Plugin> plugins = new ArrayList<>();
 	private final List<PluginCommand> commands = new ArrayList<>();
-	private final List<Event> events = new ArrayList<>();
-	private File parentTemporaryDirectory;
-	private final @NotNull Map<String, List<Listener>> listeners = new HashMap<>();
+
+	private final List<Event> events = new CopyOnWriteArrayList<>(); // CopyOnWriteArrayList is necessary to return a Stream in getFiredEvents()
+	private final AtomicReference<File> parentTemporaryDirectory = new AtomicReference<>(); // Initialized once in getParentTemporaryDirectory() and read-only afterwards
 
 	/**
 	 * Constructs a new {@link PluginManagerMock} for the provided {@link ServerMock}.
@@ -98,6 +101,7 @@ public class PluginManagerMock extends PermissionManagerMock implements PluginMa
 	 */
 	public void unload()
 	{
+		File parentTemporaryDirectory = this.parentTemporaryDirectory.get();
 		if (parentTemporaryDirectory == null)
 			return;
 
@@ -239,7 +243,7 @@ public class PluginManagerMock extends PermissionManagerMock implements PluginMa
 	}
 
 	@Override
-	public Plugin getPlugin(@NotNull String name)
+	public synchronized Plugin getPlugin(@NotNull String name)
 	{
 		Preconditions.checkNotNull(name, "Name cannot be null");
 		for (Plugin plugin : plugins)
@@ -253,7 +257,7 @@ public class PluginManagerMock extends PermissionManagerMock implements PluginMa
 	}
 
 	@Override
-	public Plugin @NotNull [] getPlugins()
+	public synchronized Plugin @NotNull [] getPlugins()
 	{
 		return plugins.toArray(new Plugin[0]);
 	}
@@ -263,9 +267,9 @@ public class PluginManagerMock extends PermissionManagerMock implements PluginMa
 	 *
 	 * @return A collection of all available commands.
 	 */
-	public @NotNull Collection<PluginCommand> getCommands()
+	public synchronized @NotNull Collection<PluginCommand> getCommands()
 	{
-		return Collections.unmodifiableList(commands);
+		return List.copyOf(commands);
 	}
 
 	/**
@@ -335,10 +339,19 @@ public class PluginManagerMock extends PermissionManagerMock implements PluginMa
 	 */
 	public @NotNull File getParentTemporaryDirectory() throws IOException
 	{
+		File parentTemporaryDirectory = this.parentTemporaryDirectory.get();
 		if (parentTemporaryDirectory == null)
 		{
 			Random random = ThreadLocalRandom.current();
-			parentTemporaryDirectory = Files.createTempDirectory("MockBukkit-" + random.nextInt(0, Integer.MAX_VALUE)).toFile();
+			File tmpDir = Files.createTempDirectory("MockBukkit-" + random.nextInt(0, Integer.MAX_VALUE)).toFile();
+			File prev = this.parentTemporaryDirectory.compareAndExchange(null, tmpDir);
+			if (prev != null)
+			{
+				// Another thread set parentTemporaryDirectory. Prev is the correct tmp directory
+				Files.delete(tmpDir.toPath());
+				return prev;
+			}
+			return tmpDir;
 		}
 		return parentTemporaryDirectory;
 	}
@@ -384,8 +397,11 @@ public class PluginManagerMock extends PermissionManagerMock implements PluginMa
 	public void registerLoadedPlugin(@NotNull Plugin plugin)
 	{
 		Preconditions.checkNotNull(plugin, "Plugin cannot be null");
-		addCommandsFrom(plugin);
-		plugins.add(plugin);
+		synchronized (this)
+		{
+			addCommandsFrom(plugin);
+			plugins.add(plugin);
+		}
 		plugin.onLoad();
 	}
 
@@ -652,7 +668,7 @@ public class PluginManagerMock extends PermissionManagerMock implements PluginMa
 	 *
 	 * @param plugin The plugin from which to read commands.
 	 */
-	protected void addCommandsFrom(@NotNull Plugin plugin)
+	protected synchronized void addCommandsFrom(@NotNull Plugin plugin)
 	{
 		Preconditions.checkNotNull(plugin, "Plugin cannot be null");
 		Map<String, Map<String, Object>> pluginCommands = plugin.getDescription().getCommands();
@@ -679,33 +695,18 @@ public class PluginManagerMock extends PermissionManagerMock implements PluginMa
 	public boolean isPluginEnabled(@NotNull String name)
 	{
 		Preconditions.checkNotNull(name, "Name cannot be null");
-		boolean result = false;
-
-		for (Plugin mockedPlugin : plugins)
-		{
-			if (mockedPlugin.getName().equals(name))
-			{
-				result = mockedPlugin.isEnabled();
-			}
-		}
-
-		return result;
+		Plugin plugin = getPlugin(name);
+		return plugin != null && plugin.isEnabled();
 	}
 
 	@Override
-	public boolean isPluginEnabled(@Nullable Plugin plugin)
+	public synchronized boolean isPluginEnabled(@Nullable Plugin plugin)
 	{
-		boolean result = false;
-
-		for (Plugin mockedPlugin : plugins)
+		if (plugin != null && plugins.contains(plugin))
 		{
-			if (mockedPlugin.equals(plugin))
-			{
-				result = plugin.isEnabled();
-			}
+			return plugin.isEnabled();
 		}
-
-		return result;
+		return false;
 	}
 
 	@Override
@@ -746,7 +747,7 @@ public class PluginManagerMock extends PermissionManagerMock implements PluginMa
 	@Override
 	public void disablePlugins()
 	{
-		for (Plugin plugin : plugins)
+		for (Plugin plugin : getPlugins())
 			disablePlugin(plugin);
 	}
 
@@ -754,7 +755,10 @@ public class PluginManagerMock extends PermissionManagerMock implements PluginMa
 	public void clearPlugins()
 	{
 		disablePlugins();
-		plugins.clear();
+		synchronized (this)
+		{
+			plugins.clear();
+		}
 	}
 
 	/**
@@ -776,23 +780,9 @@ public class PluginManagerMock extends PermissionManagerMock implements PluginMa
 		{
 			throw new IllegalPluginAccessException("Plugin attempted to register " + listener + " while not enabled");
 		}
-		addListener(listener, plugin);
 		for (Map.Entry<Class<? extends Event>, Set<RegisteredListener>> entry : plugin.getPluginLoader().createRegisteredListeners(listener, plugin).entrySet())
 		{
 			getEventListeners(getRegistrationClass(entry.getKey())).registerAll(entry.getValue());
-		}
-
-	}
-
-	private void addListener(@NotNull Listener listener, @NotNull Plugin plugin)
-	{
-		Preconditions.checkNotNull(listener, "Listener cannot be null");
-		Preconditions.checkNotNull(plugin, "Listener cannot be null");
-		List<Listener> l = listeners.getOrDefault(plugin.getName(), new ArrayList<>());
-		if (!l.contains(listener))
-		{
-			l.add(listener);
-			listeners.put(plugin.getName(), l);
 		}
 	}
 
@@ -804,18 +794,7 @@ public class PluginManagerMock extends PermissionManagerMock implements PluginMa
 	public void unregisterPluginEvents(@NotNull Plugin plugin)
 	{
 		Preconditions.checkNotNull(plugin, "Listener cannot be null");
-		List<Listener> listListener = listeners.get(plugin.getName());
-		if (listListener != null)
-		{
-			for (Listener l : listListener)
-			{
-				for (Map.Entry<Class<? extends Event>, Set<RegisteredListener>> entry : plugin.getPluginLoader().createRegisteredListeners(l, plugin).entrySet())
-				{
-					getEventListeners(getRegistrationClass(entry.getKey())).unregister(plugin);
-				}
-			}
-		}
-
+		HandlerList.unregisterAll(plugin);
 	}
 
 	@Override
@@ -838,7 +817,6 @@ public class PluginManagerMock extends PermissionManagerMock implements PluginMa
 		{
 			throw new IllegalPluginAccessException("Plugin attempted to register " + event + " while not enabled");
 		}
-		addListener(listener, plugin);
 		getEventListeners(event).register(new RegisteredListener(listener, executor, priority, plugin, ignoreCancelled));
 	}
 
