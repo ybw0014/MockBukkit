@@ -1,5 +1,8 @@
 package org.mockbukkit.mockbukkit.inventory;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.mockbukkit.mockbukkit.MockBukkit;
 import org.mockbukkit.mockbukkit.ServerMock;
 import org.bukkit.Material;
@@ -10,6 +13,9 @@ import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockbukkit.mockbukkit.block.state.BlockStateMock;
+import org.mockbukkit.mockbukkit.entity.EntityMock;
+import org.mockbukkit.mockbukkit.exception.UnimplementedOperationException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -644,4 +650,49 @@ class InventoryMockTest
 		assertEquals(1, inventory.getNumberOfItems(emerald));
 	}
 
+	@Test
+	void getLocation_WithEntityHolder()
+	{
+		Player player = server.addPlayer();
+		Location expectedLocation = new Location(player.getWorld(), 10, 20, 30);
+		player.teleport(expectedLocation);
+
+		inventory = new InventoryMock(player, InventoryType.CHEST);
+		Location location = inventory.getLocation();
+
+		assertNotNull(location);
+		assertEquals(expectedLocation, location);
+	}
+
+	@Test
+	void getLocation_WithoutEntityHolder_WithNoWorldCreatedYet()
+	{
+		Location location = inventory.getLocation();
+
+		assertNotNull(location);
+		assertEquals(Bukkit.getWorlds().getFirst().getSpawnLocation(), location);
+	}
+
+	@Test
+	void getLocation_WithoutEntityHolder_WithWorldCreated()
+	{
+		World world = server.addSimpleWorld("world");
+		world.setSpawnLocation(1, 2, 3);
+
+		Location location = inventory.getLocation();
+
+		assertNotNull(location);
+		assertEquals(new Location(world, 1, 2, 3), location);
+	}
+
+	@Test
+	void getLocation_WithNonEntityHolder()
+	{
+		Player player = server.addPlayer();
+		final Location expectedLocation = new Location(player.getWorld(), 10, 20, 30);
+		player.teleport(expectedLocation);
+		inventory = new InventoryMock(player, InventoryType.PLAYER);
+
+		assertEquals(expectedLocation, inventory.getLocation());
+	}
 }

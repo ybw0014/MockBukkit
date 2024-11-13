@@ -1,5 +1,6 @@
 package org.mockbukkit.mockbukkit.inventory;
 
+import org.bukkit.Location;
 import org.mockbukkit.mockbukkit.exception.UnimplementedOperationException;
 import com.google.common.base.Preconditions;
 import org.bukkit.entity.HumanEntity;
@@ -145,15 +146,56 @@ public abstract class InventoryViewMock implements InventoryView
 	@Override
 	public void setItem(int slot, @Nullable ItemStack item)
 	{
-		// TODO Auto-generated method stub
-		throw new UnimplementedOperationException();
+		ItemStack stack = item == null ? null : item.clone();
+
+		if (slot < 0)
+		{
+			if (stack != null)
+			{
+				getPlayer().getWorld().dropItemNaturally(getPlayer().getLocation(), stack);
+			}
+
+			return;
+		}
+
+		int topSize = getTopInventory().getSize();
+		if (slot < topSize)
+		{
+			getTopInventory().setItem(slot, stack);
+			return;
+		}
+
+		slot -= topSize;
+		if (slot < getBottomInventory().getSize())
+		{
+			getBottomInventory().setItem(slot, stack);
+			return;
+		}
+
+		throw new IndexOutOfBoundsException(slot);
 	}
 
 	@Override
 	public @Nullable ItemStack getItem(int slot)
 	{
-		// TODO Auto-generated method stub
-		throw new UnimplementedOperationException();
+		int topSize = getTopInventory().getSize();
+		if (slot < 0)
+		{
+			return null;
+		}
+
+		if (slot < topSize)
+		{
+			return getTopInventory().getItem(slot);
+		}
+
+		slot -= topSize;
+		if (slot < getBottomInventory().getSize())
+		{
+			return getBottomInventory().getItem(slot);
+		}
+
+		throw new IndexOutOfBoundsException(slot);
 	}
 
 	@Override
