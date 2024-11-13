@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 
 class ThrownPotionMockTest
 {
@@ -94,9 +95,6 @@ class ThrownPotionMockTest
 
 	@ParameterizedTest
 	@MethodSource("getThrowablePotionMaterials")
-	@EnumSource(value = Material.class, names = {
-			"DIRT", "DIAMOND", "ACACIA_BOAT"
-	})
 	void getPotionMeta_GivenValidPotion(Material input)
 	{
 		ItemStack expected = ItemStack.of(input);
@@ -104,7 +102,30 @@ class ThrownPotionMockTest
 
 		@NotNull PotionMeta actual = potion.getPotionMeta();
 		assertNotNull(actual);
-		assertSame(actual, potion.getPotionMeta());
+
+		PotionMeta other = potion.getPotionMeta();
+		assertNotSame(actual, other);
+		assertEquals(actual, other);
+	}
+
+	@ParameterizedTest
+	@EnumSource(value = Material.class, names = {
+			"DIRT", "DIAMOND", "ACACIA_BOAT"
+	})
+	void getPotionMeta_GiveInvalidPotion(Material input)
+	{
+		ItemStack expected = ItemStack.of(input);
+		potion.setItem(expected);
+
+		try
+		{
+			potion.getPotionMeta();
+			fail("Non potion material should not be valid potion");
+		}
+		catch (ClassCastException ignored)
+		{
+			// Expected
+		}
 	}
 
 	@Test

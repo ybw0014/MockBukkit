@@ -1,5 +1,6 @@
 package org.mockbukkit.mockbukkit.inventory;
 
+import org.bukkit.inventory.meta.Damageable;
 import org.mockbukkit.mockbukkit.exception.ItemMetaInitException;
 import org.mockbukkit.mockbukkit.inventory.meta.ItemMetaMock;
 import com.google.common.base.Preconditions;
@@ -13,8 +14,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ItemType;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nullable;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Locale;
 import java.util.Map;
@@ -81,22 +82,39 @@ public class ItemStackMock extends ItemStack
 		{
 			return -1;
 		}
-		return type.getMaxDurability();
+		return 0;
 	}
 
 	@Override
 	public void setType(@NotNull Material type)
 	{
-		if (!type.isItem())
+		if (!type.isItem() || type.isAir())
 		{
 			this.type = ItemType.AIR;
 			this.itemMeta = null;
+			this.durability = initDurability(this.type);
 			return;
 		}
 		if (type != this.type.asMaterial())
 		{
 			this.type = type.asItemType();
-			this.itemMeta = findItemMeta(type);
+			if(this.itemMeta == null)
+			{
+				this.itemMeta = findItemMeta(type);
+			}
+			else
+			{
+				this.itemMeta = Bukkit.getItemFactory().asMetaFor(this.itemMeta, type);
+			}
+			if(this.durability == 0)
+			{
+				this.durability = initDurability(this.type);
+				((Damageable)this.itemMeta).resetDamage();
+			}
+			else
+			{
+				setDurability(this.durability);
+			}
 		}
 	}
 
@@ -125,17 +143,45 @@ public class ItemStackMock extends ItemStack
 	}
 
 	@Override
-	public boolean setItemMeta(@org.jetbrains.annotations.Nullable ItemMeta itemMeta)
+	public boolean setItemMeta(@Nullable ItemMeta itemMeta)
 	{
-		if (this.type == ItemTypeMock.AIR) return false;
+		if(itemMeta == null)
+		{
+			this.itemMeta = findItemMeta(getType());
+			this.durability = initDurability(this.type);
+			return true;
+		}
+		if (!Bukkit.getItemFactory().isApplicable(itemMeta, this))
+		{
+			return false;
+		}
+
+		itemMeta = Bukkit.getItemFactory().asMetaFor(itemMeta, this);
+		if(itemMeta == null) return true;
 		this.itemMeta = itemMeta;
+
+		if(this.itemMeta instanceof Damageable damageable){
+			short defaultDurability = initDurability(this.type);
+			if(!damageable.hasDamageValue())
+			{
+				durability = defaultDurability;
+			}
+			else
+			{
+				short value = (short) Math.min(Short.MAX_VALUE, damageable.getDamage());
+				setDurability(value);
+				if(durability == defaultDurability){
+					damageable.resetDamage();
+				}
+			}
+		}
 		return true;
 	}
 
 	@Override
 	public ItemMeta getItemMeta()
 	{
-		return this.itemMeta;
+		return this.itemMeta != null ? this.itemMeta.clone() : null;
 	}
 
 	@Override
@@ -153,13 +199,19 @@ public class ItemStackMock extends ItemStack
 	@Override
 	public short getDurability()
 	{
+		if(this.type == ItemType.AIR) return -1;
+
 		return (short) Math.max(this.durability, 0);
 	}
 
 	@Override
 	public void setDurability(short durability)
 	{
+		short oldDurability = this.durability;
 		this.durability = (short) Math.min(Math.max(durability, 0), this.type.getMaxDurability());
+		if((this.itemMeta instanceof Damageable damageable) && this.durability != oldDurability){
+			damageable.setDamage(this.durability);
+		}
 	}
 
 	@Override
@@ -212,8 +264,8 @@ public class ItemStackMock extends ItemStack
 		ItemStackMock clone = new ItemStackMock(this.type);
 
 		clone.setAmount(this.amount);
+		clone.setItemMeta(this.itemMeta);
 		clone.durability = this.durability;
-		clone.setItemMeta(this.itemMeta == null ? null : this.itemMeta.clone());
 		return clone;
 	}
 
@@ -239,7 +291,7 @@ public class ItemStackMock extends ItemStack
 	@Override
 	public int hashCode()
 	{
-		if (type == ItemType.AIR)
+		if (type == ItemType.AIR && this != EMPTY)
 		{
 			return EMPTY.hashCode();
 		}
@@ -311,7 +363,7 @@ public class ItemStackMock extends ItemStack
 		Object raw = args.get("meta");
 		if (raw instanceof ItemMeta)
 		{
-			((ItemMeta) raw).setVersion(version);
+			//((ItemMeta) raw).setVersion(version); //TODO uncomment when setVersion is implemented
 			// Paper start - for pre 1.20.5 itemstacks, add HIDE_STORED_ENCHANTS flag if HIDE_ADDITIONAL_TOOLTIP is set
 			if (version < 3837 && ((ItemMeta) raw).hasItemFlag(ItemFlag.HIDE_ADDITIONAL_TOOLTIP))
 			{ // 1.20.5

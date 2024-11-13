@@ -1,5 +1,9 @@
 package org.mockbukkit.mockbukkit.inventory.meta;
 
+import com.destroystokyo.paper.MaterialTags;
+import org.bukkit.Bukkit;
+import org.bukkit.Tag;
+import org.junit.jupiter.params.provider.Arguments;
 import org.mockbukkit.mockbukkit.MockBukkit;
 import org.mockbukkit.mockbukkit.MockBukkitExtension;
 import org.mockbukkit.mockbukkit.plugin.PluginMock;
@@ -46,17 +50,18 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockbukkit.mockbukkit.matcher.inventory.meta.ItemMetaAnyLoreMatcher.hasAnyLore;
 import static org.mockbukkit.mockbukkit.matcher.inventory.meta.ItemMetaAnyLoreMatcher.hasNoLore;
 import static org.mockbukkit.mockbukkit.matcher.inventory.meta.ItemMetaLoreMatcher.doesNotHaveLore;
@@ -503,6 +508,17 @@ class ItemMetaMockTest
 	}
 
 	@Test
+	void removeEnchants()
+	{
+		meta.addEnchant(Enchantment.SHARPNESS, 5, true);
+		meta.addEnchant(Enchantment.UNBREAKING, 3, true);
+		assertEquals(2, meta.getEnchants().size());
+
+		meta.removeEnchantments();
+		assertTrue(meta.getEnchants().isEmpty());
+	}
+
+	@Test
 	void addEnchant_IgnoreLevel()
 	{
 		assertTrue(meta.addEnchant(Enchantment.UNBREAKING, 100, true));
@@ -560,6 +576,9 @@ class ItemMetaMockTest
 	@Test
 	void testDamageCorrectlySet()
 	{
+		assertFalse(meta.hasDamageValue());
+		assertFalse(meta.hasDamage());
+
 		int value = 500;
 		meta.setDamage(value);
 		ItemStack item = new ItemStackMock(Material.DIAMOND_SWORD);
@@ -569,12 +588,16 @@ class ItemMetaMockTest
 		int damage = itemMeta.getDamage();
 		assertEquals(value, damage);
 		assertTrue(itemMeta.hasDamage());
+		assertTrue(itemMeta.hasDamageValue());
 	}
 
 	@Test
 	void testNoDamage()
 	{
 		meta.setDamage(0);
+		assertFalse(meta.hasDamage());
+		assertTrue(meta.hasDamageValue());
+
 		ItemStack item = new ItemStackMock(Material.DIAMOND_SWORD);
 		item.setItemMeta(meta);
 
@@ -582,6 +605,30 @@ class ItemMetaMockTest
 		int damage = itemMeta.getDamage();
 		assertEquals(0, damage);
 		assertFalse(itemMeta.hasDamage());
+		assertFalse(itemMeta.hasDamageValue());
+	}
+
+	@Test
+	void testNegativeDamageFail(){
+		try {
+			meta.setDamage(-1);
+			fail("Negative damage could be set");
+		} catch (IllegalStateException e){
+			// Good scenario
+		}
+	}
+
+	@Test
+	void testResetDamage(){
+		meta.setDamage(1);
+
+		assertTrue(meta.hasDamageValue());
+		assertTrue(meta.hasDamage());
+
+		meta.resetDamage();
+
+		assertFalse(meta.hasDamageValue());
+		assertFalse(meta.hasDamage());
 	}
 
 	@Test
@@ -1041,6 +1088,98 @@ class ItemMetaMockTest
 			Enum[] enums = (Enum[]) parameterType.getEnumConstants();
 			method.invoke(object, enums[enums.length - 1]);
 		}
+	}
+
+	// Copied from org.mockbukkit.mockbukkit.inventory.ItemFactory#testGetItemMetaCorrectClass and similar
+	// Only replace "factory.getItemMeta" with "new ItemStackMock" followed by a .getItemMeta()
+	@Test
+	void testGetItemMetaCorrectClass()
+	{
+		assertInstanceOf(ItemMetaMock.class, new ItemStackMock(Material.DIRT).getItemMeta());
+		assertInstanceOf(SkullMetaMock.class, new ItemStackMock(Material.PLAYER_HEAD).getItemMeta());
+
+		assertInstanceOf(BookMetaMock.class, new ItemStackMock(Material.WRITABLE_BOOK).getItemMeta());
+		assertInstanceOf(BookMetaMock.class, new ItemStackMock(Material.WRITTEN_BOOK).getItemMeta());
+		assertInstanceOf(EnchantmentStorageMetaMock.class, new ItemStackMock(Material.ENCHANTED_BOOK).getItemMeta());
+		assertInstanceOf(KnowledgeBookMetaMock.class, new ItemStackMock(Material.KNOWLEDGE_BOOK).getItemMeta());
+
+		assertInstanceOf(FireworkEffectMetaMock.class, new ItemStackMock(Material.FIREWORK_STAR).getItemMeta());
+		assertInstanceOf(FireworkMetaMock.class, new ItemStackMock(Material.FIREWORK_ROCKET).getItemMeta());
+
+		assertInstanceOf(SuspiciousStewMetaMock.class, new ItemStackMock(Material.SUSPICIOUS_STEW).getItemMeta());
+		assertInstanceOf(PotionMetaMock.class, new ItemStackMock(Material.POTION).getItemMeta());
+		assertInstanceOf(PotionMetaMock.class, new ItemStackMock(Material.TIPPED_ARROW).getItemMeta());
+
+		assertInstanceOf(ColorableArmorMetaMock.class, new ItemStackMock(Material.LEATHER_HELMET).getItemMeta());
+		assertInstanceOf(ColorableArmorMetaMock.class, new ItemStackMock(Material.LEATHER_CHESTPLATE).getItemMeta());
+		assertInstanceOf(ColorableArmorMetaMock.class, new ItemStackMock(Material.LEATHER_LEGGINGS).getItemMeta());
+		assertInstanceOf(ColorableArmorMetaMock.class, new ItemStackMock(Material.LEATHER_BOOTS).getItemMeta());
+		assertInstanceOf(ColorableArmorMetaMock.class, new ItemStackMock(Material.WOLF_ARMOR).getItemMeta());
+		assertInstanceOf(LeatherArmorMetaMock.class, new ItemStackMock(Material.LEATHER_HORSE_ARMOR).getItemMeta());
+
+		assertInstanceOf(ShieldMetaMock.class, new ItemStackMock(Material.SHIELD).getItemMeta());
+
+		assertInstanceOf(AxolotlBucketMetaMock.class, new ItemStackMock(Material.AXOLOTL_BUCKET).getItemMeta());
+		assertInstanceOf(BundleMetaMock.class, new ItemStackMock(Material.BUNDLE).getItemMeta());
+		assertInstanceOf(MapMetaMock.class, new ItemStackMock(Material.FILLED_MAP).getItemMeta());
+		assertInstanceOf(CompassMetaMock.class, new ItemStackMock(Material.COMPASS).getItemMeta());
+		assertInstanceOf(CrossbowMetaMock.class, new ItemStackMock(Material.CROSSBOW).getItemMeta());
+		assertInstanceOf(ArmorStandMetaMock.class, new ItemStackMock(Material.ARMOR_STAND).getItemMeta());
+		assertInstanceOf(TropicalFishBucketMetaMock.class, new ItemStackMock(Material.TROPICAL_FISH_BUCKET).getItemMeta());
+		assertInstanceOf(OminousBottleMetaMock.class, new ItemStackMock(Material.OMINOUS_BOTTLE).getItemMeta());
+
+	}
+
+	@ParameterizedTest
+	@MethodSource("spawnEgg_Materials")
+	void testGetItemMetaCorrectClass_SpawnEgg(Material egg)
+	{
+		assertInstanceOf(SpawnEggMetaMock.class, new ItemStackMock(egg).getItemMeta());
+	}
+
+	@ParameterizedTest
+	@MethodSource("banners_Materials")
+	void testGetItemMetaCorrectClass_Banners(Material banner)
+	{
+		assertInstanceOf(BannerMetaMock.class, new ItemStackMock(banner).getItemMeta());
+	}
+
+	@ParameterizedTest
+	@MethodSource("trimmable_Materials")
+	void testGetItemMetaCorrectClass_Trimmable(Material armor)
+	{
+		assertInstanceOf(ArmorMetaMock.class, new ItemStackMock(armor).getItemMeta());
+	}
+
+	@ParameterizedTest
+	@MethodSource("skulls_Materials")
+	void testGetItemMetaCorrectClass_Skulls(Material skull)
+	{
+		assertInstanceOf(SkullMetaMock.class, new ItemStackMock(skull).getItemMeta());
+	}
+
+	public static Stream<Arguments> spawnEgg_Materials()
+	{
+		MockBukkit.getOrCreateMock(); // Ensure server is created for use of MaterialTags
+		return MaterialTags.SPAWN_EGGS.getValues().stream().map(Arguments::of);
+	}
+
+	public static Stream<Arguments> banners_Materials()
+	{
+		MockBukkit.getOrCreateMock(); // Ensure server is created for use of Tag
+		return Tag.ITEMS_BANNERS.getValues().stream().map(Arguments::of);
+	}
+
+	public static Stream<Arguments> trimmable_Materials()
+	{
+		MockBukkit.getOrCreateMock(); // Ensure server is created for use of Tag
+		return Tag.ITEMS_TRIMMABLE_ARMOR.getValues().stream().map(Arguments::of);
+	}
+
+	public static Stream<Arguments> skulls_Materials()
+	{
+		MockBukkit.getOrCreateMock(); // Ensure server is created for use of Tag
+		return Tag.ITEMS_SKULLS.getValues().stream().map(Arguments::of);
 	}
 
 }

@@ -1,5 +1,7 @@
 package org.mockbukkit.mockbukkit.inventory;
 
+import org.bukkit.Bukkit;
+import org.bukkit.inventory.meta.Damageable;
 import org.mockbukkit.mockbukkit.MockBukkit;
 import org.mockbukkit.mockbukkit.MockBukkitExtension;
 import org.mockbukkit.mockbukkit.exception.UnimplementedOperationException;
@@ -29,6 +31,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
@@ -60,6 +63,10 @@ class ItemStackMockTest
 			{
 				String itemMetaClassString = getMetaInterface(itemStack.getItemMeta().getClass()).getName();
 				assertEquals(expected.get("meta").getAsString(), itemMetaClassString);
+
+				ItemMeta factoryMeta = Bukkit.getItemFactory().getItemMeta(material);
+				String factoryMetaClassString = getMetaInterface(factoryMeta.getClass()).getName();
+				assertEquals(expected.get("meta").getAsString(), factoryMetaClassString);
 			}
 		}
 		catch (UnimplementedOperationException ignored)
@@ -270,7 +277,7 @@ class ItemStackMockTest
 		Matcher matcher = CLASS_NAME_RE.matcher(metaClassString);
 		if (matcher.find())
 		{
-			return List.of("BlockStateMeta", "BlockDataMeta", "EnchantmentStorageMeta", "MusicInstrumentMeta").contains(matcher.group());
+			return List.of("BlockStateMeta", "BlockDataMeta", "MusicInstrumentMeta").contains(matcher.group());
 		}
 		else
 		{
@@ -317,4 +324,237 @@ class ItemStackMockTest
 		int level = itemStack.getEnchantmentLevel(Enchantment.EFFICIENCY);
 		assertEquals(5, level);
 	}
+
+	@Test
+	void setItemMeta_IsCopy(){
+		ItemStackMock itemStack = new ItemStackMock(Material.DIAMOND_PICKAXE);
+
+		ItemMeta meta1 = itemStack.getItemMeta();
+		meta1.setCustomModelData(0);
+
+		itemStack.setItemMeta(meta1);
+
+		ItemMeta meta2 = itemStack.getItemMeta();
+		assertNotSame(meta1, meta2);
+		assertEquals(meta1, meta2);
+
+		meta1.setCustomModelData(42);
+		ItemMeta meta3 = itemStack.getItemMeta();
+		assertNotEquals(meta1, meta3);
+	}
+
+	@Test
+	void getItemMeta_IsCopy(){
+		ItemStackMock itemStack = new ItemStackMock(Material.DIAMOND_PICKAXE);
+
+		ItemMeta meta1 = itemStack.getItemMeta();
+		ItemMeta meta2 = itemStack.getItemMeta();
+
+		assertNotSame(meta1, meta2);
+		assertEquals(meta1, meta2);
+
+		meta1.setCustomModelData(42);
+		assertNotEquals(meta1, meta2);
+
+		ItemMeta meta3 = itemStack.getItemMeta();
+		assertNotEquals(meta1, meta3);
+	}
+
+	@Test
+	void getItemMeta_DamageEmpty(){
+		ItemStackMock itemStack = new ItemStackMock(Material.DIAMOND_PICKAXE);
+		ItemMeta meta = itemStack.getItemMeta();
+
+		assertInstanceOf(Damageable.class, meta);
+
+		Damageable damageable = (Damageable) meta;
+		assertEquals(itemStack.getDurability(), damageable.getDamage());
+		assertFalse(damageable.hasDamage());
+		assertFalse(damageable.hasDamageValue());
+	}
+
+	@Test
+	void setDurability_ZeroMetaDamageEqual(){
+		ItemStackMock itemStack = new ItemStackMock(Material.DIAMOND_PICKAXE);
+		itemStack.setDurability((short) 0);
+		ItemMeta meta = itemStack.getItemMeta();
+
+		assertInstanceOf(Damageable.class, meta);
+		Damageable damageable = (Damageable) meta;
+
+		assertEquals(itemStack.getDurability(), damageable.getDamage());
+		assertFalse(damageable.hasDamage());
+		assertFalse(damageable.hasDamageValue());
+	}
+
+	@Test
+	void setDurability_NonZeroMetaDamageEqual(){
+		ItemStackMock itemStack = new ItemStackMock(Material.DIAMOND_PICKAXE);
+		itemStack.setDurability((short) 1);
+		ItemMeta meta = itemStack.getItemMeta();
+
+		assertInstanceOf(Damageable.class, meta);
+		Damageable damageable = (Damageable) meta;
+
+		assertEquals(itemStack.getDurability(), damageable.getDamage());
+		assertTrue(damageable.hasDamage());
+		assertTrue(damageable.hasDamageValue());
+	}
+
+	@Test
+	void setDamage_ZeroItemDurabilityEqual(){
+		ItemStack base = new ItemStack(Material.DIAMOND_PICKAXE);
+		ItemStack itemStack = new ItemStack(Material.DIAMOND_PICKAXE);
+		ItemMeta meta = itemStack.getItemMeta();
+
+		assertInstanceOf(Damageable.class, meta);
+		Damageable damageable = (Damageable) meta;
+		damageable.setDamage(0);
+
+		assertFalse(damageable.hasDamage());
+		assertTrue(damageable.hasDamageValue());
+
+		itemStack.setItemMeta(meta);
+		assertEquals(0, itemStack.getDurability());
+		assertEquals(base, itemStack);
+
+		// Check new meta has no damage value
+		meta = itemStack.getItemMeta();
+		assertInstanceOf(Damageable.class, meta);
+		damageable = (Damageable) meta;
+
+		assertEquals(0, damageable.getDamage());
+		assertFalse(damageable.hasDamage());
+		assertFalse(damageable.hasDamageValue());
+	}
+
+	@Test
+	void setDamage_NonZeroItemDurabilityEqual(){
+		ItemStack base = new ItemStack(Material.DIAMOND_PICKAXE);
+		ItemStack itemStack = new ItemStack(Material.DIAMOND_PICKAXE);
+		ItemMeta meta = itemStack.getItemMeta();
+
+		assertInstanceOf(Damageable.class, meta);
+		Damageable damageable = (Damageable) meta;
+		damageable.setDamage(1);
+
+		assertTrue(damageable.hasDamage());
+		assertTrue(damageable.hasDamageValue());
+
+		itemStack.setItemMeta(meta);
+		assertEquals(1, itemStack.getDurability());
+		assertNotEquals(base, itemStack);
+
+		// Check new meta has damage value
+		meta = itemStack.getItemMeta();
+		assertInstanceOf(Damageable.class, meta);
+		damageable = (Damageable) meta;
+
+		assertEquals(1, itemStack.getDurability());
+		assertTrue(damageable.hasDamage());
+		assertTrue(damageable.hasDamageValue());
+	}
+
+	@Test
+	void getDurability_OnAir(){
+		ItemStackMock itemStack = new ItemStackMock(Material.AIR);
+		ItemStack cloned = itemStack.clone();
+
+		assertEquals(-1, itemStack.getDurability());
+		assertEquals(itemStack.hashCode(), cloned.hashCode());
+
+		itemStack.setDurability((short) 1);
+		assertEquals(-1, itemStack.getDurability());
+		assertEquals(itemStack.hashCode(), cloned.hashCode());
+	}
+
+	@Test
+	void setType_ChangeDurability(){
+		ItemStack base = new ItemStack(Material.DIAMOND);
+		ItemStack itm = new ItemStack(Material.DIAMOND_PICKAXE);
+
+		itm.setDurability((short) 1);
+		itm.setType(Material.DIAMOND);
+
+		assertEquals(0, itm.getDurability());
+		assertNotEquals(base, itm);
+	}
+
+	@Test
+	void setType_AirChangeDurability(){
+		ItemStack base = new ItemStack(Material.DIAMOND_PICKAXE);
+		ItemStack itm = new ItemStack(Material.DIAMOND_PICKAXE);
+
+		itm.setDurability((short) 1);
+		itm.setType(Material.AIR);
+		itm.setType(Material.DIAMOND_PICKAXE);
+
+		assertEquals(0, itm.getDurability());
+		assertEquals(base, itm);
+	}
+
+	@Test
+	void setType_DurabilityUnsetFromSetting(){
+		ItemStack base = new ItemStack(Material.DIAMOND);
+		ItemStack itm = new ItemStack(Material.DIAMOND_PICKAXE);
+
+		itm.setDurability((short) 0);
+		itm.setType(Material.DIAMOND);
+
+		assertEquals(0, itm.getDurability());
+		assertEquals(base, itm);
+	}
+
+	@Test
+	void setType_DurabilitySetFromSetting(){
+		ItemStack base = new ItemStack(Material.DIAMOND_PICKAXE);
+		ItemStack itm = new ItemStack(Material.DIAMOND);
+
+		itm.setType(Material.DIAMOND_PICKAXE);
+
+		assertEquals(0, itm.getDurability());
+		assertEquals(base, itm);
+	}
+
+	@Test
+	void setType_switchMeta(){
+		ItemStack itm = new ItemStack(Material.DIAMOND_CHESTPLATE);
+
+		ItemMeta meta = itm.getItemMeta();
+		meta.setDisplayName("a");
+		itm.setItemMeta(meta);
+
+		itm.setType(Material.ENCHANTED_BOOK);
+		ItemMeta meta2 = itm.getItemMeta();
+
+		assertNotEquals(meta2, meta);
+		meta2 = Bukkit.getItemFactory().asMetaFor(meta2, Material.DIAMOND_CHESTPLATE);
+		assertEquals(meta2, meta);
+	}
+
+	@Test
+	void setItemMeta_setNull(){
+		ItemStack base = new ItemStack(Material.DIAMOND_PICKAXE);
+		ItemStack itm = new ItemStack(Material.DIAMOND_PICKAXE);
+
+		itm.setDurability((short) 1);
+		itm.setItemMeta(null);
+
+		assertEquals(0, itm.getDurability());
+		assertEquals(base, itm);
+	}
+
+	@Test
+	void getItemMeta_Empty(){
+		ItemStack itemStack = new ItemStack(Material.STICK);
+		itemStack.setDurability((short) 0);
+
+		ItemMeta meta = itemStack.getItemMeta();
+		assertInstanceOf(Damageable.class, meta);
+		Damageable damageable = (Damageable) meta;
+
+		assertFalse(damageable.hasDamage());
+		assertTrue(damageable.hasDamageValue());
+	}
+
 }
