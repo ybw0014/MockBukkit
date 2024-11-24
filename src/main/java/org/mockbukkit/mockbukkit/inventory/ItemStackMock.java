@@ -1,32 +1,38 @@
 package org.mockbukkit.mockbukkit.inventory;
 
-import org.bukkit.inventory.meta.Damageable;
-import org.mockbukkit.mockbukkit.exception.ItemMetaInitException;
-import org.mockbukkit.mockbukkit.inventory.meta.ItemMetaMock;
 import com.google.common.base.Preconditions;
+import io.papermc.paper.persistence.PersistentDataContainerView;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ItemType;
+import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.mockbukkit.mockbukkit.exception.ItemMetaInitException;
+import org.mockbukkit.mockbukkit.exception.UnimplementedOperationException;
+import org.mockbukkit.mockbukkit.inventory.meta.ItemMetaMock;
+import org.mockbukkit.mockbukkit.persistence.PersistentDataContainerViewMock;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 public class ItemStackMock extends ItemStack
 {
 
 	private ItemType type = ItemTypeMock.AIR;
 	private int amount = 1;
-	private ItemMeta itemMeta = new ItemMetaMock();
+	private ItemMeta itemMeta;
 	private short durability = -1;
 
 	private static final ItemStackMock EMPTY = new ItemStackMock((Void) null);
@@ -47,8 +53,7 @@ public class ItemStackMock extends ItemStack
 		this.type = stack.getType().asItemType();
 		this.amount = stack.getAmount();
 		this.durability = initDurability(this.type);
-
-
+		setItemMeta(stack.getItemMeta());
 	}
 
 	public ItemStackMock(@NotNull Material type, int amount)
@@ -64,6 +69,7 @@ public class ItemStackMock extends ItemStack
 		this.type = ItemTypeMock.AIR;
 		this.durability = initDurability(type);
 		this.amount = 0;
+		this.itemMeta = null;
 	}
 
 	private ItemStackMock(@NotNull ItemType type)
@@ -98,7 +104,7 @@ public class ItemStackMock extends ItemStack
 		if (type != this.type.asMaterial())
 		{
 			this.type = type.asItemType();
-			if(this.itemMeta == null)
+			if (this.itemMeta == null)
 			{
 				this.itemMeta = findItemMeta(type);
 			}
@@ -106,10 +112,10 @@ public class ItemStackMock extends ItemStack
 			{
 				this.itemMeta = Bukkit.getItemFactory().asMetaFor(this.itemMeta, type);
 			}
-			if(this.durability == 0)
+			if (this.durability == 0)
 			{
 				this.durability = initDurability(this.type);
-				((Damageable)this.itemMeta).resetDamage();
+				((Damageable) this.itemMeta).resetDamage();
 			}
 			else
 			{
@@ -145,7 +151,7 @@ public class ItemStackMock extends ItemStack
 	@Override
 	public boolean setItemMeta(@Nullable ItemMeta itemMeta)
 	{
-		if(itemMeta == null)
+		if (itemMeta == null || ItemType.AIR.equals(this.type))
 		{
 			this.itemMeta = findItemMeta(getType());
 			this.durability = initDurability(this.type);
@@ -157,13 +163,13 @@ public class ItemStackMock extends ItemStack
 		}
 
 		itemMeta = Bukkit.getItemFactory().asMetaFor(itemMeta, this);
-		if(itemMeta == null) return true;
+		if (itemMeta == null) return true;
 		this.itemMeta = itemMeta;
 
-		if(this.itemMeta instanceof Damageable damageable)
+		if (this.itemMeta instanceof Damageable damageable)
 		{
 			short defaultDurability = initDurability(this.type);
-			if(!damageable.hasDamageValue())
+			if (!damageable.hasDamageValue())
 			{
 				durability = defaultDurability;
 			}
@@ -171,7 +177,7 @@ public class ItemStackMock extends ItemStack
 			{
 				short value = (short) Math.min(Short.MAX_VALUE, damageable.getDamage());
 				setDurability(value);
-				if(durability == defaultDurability)
+				if (durability == defaultDurability)
 				{
 					damageable.resetDamage();
 				}
@@ -195,13 +201,15 @@ public class ItemStackMock extends ItemStack
 	@Override
 	public int getMaxStackSize()
 	{
+		if (this.itemMeta == null) return 0;
+
 		return this.itemMeta.hasMaxStackSize() ? this.itemMeta.getMaxStackSize() : this.type.getMaxStackSize();
 	}
 
 	@Override
 	public short getDurability()
 	{
-		if(this.type == ItemType.AIR) return -1;
+		if (this.type == ItemType.AIR) return -1;
 
 		return (short) Math.max(this.durability, 0);
 	}
@@ -211,7 +219,7 @@ public class ItemStackMock extends ItemStack
 	{
 		short oldDurability = this.durability;
 		this.durability = (short) Math.min(Math.max(durability, 0), this.type.getMaxDurability());
-		if((this.itemMeta instanceof Damageable damageable) && this.durability != oldDurability)
+		if ((this.itemMeta instanceof Damageable damageable) && this.durability != oldDurability)
 		{
 			damageable.setDamage(this.durability);
 		}
@@ -222,11 +230,9 @@ public class ItemStackMock extends ItemStack
 	{
 		Preconditions.checkArgument(ench != null, "Enchantment cannot be null");
 
-		final ItemMeta meta = this.getItemMeta();
-		if (meta != null)
+		if (this.itemMeta != null)
 		{
-			meta.addEnchant(ench, level, true);
-			this.setItemMeta(meta);
+			this.itemMeta.addEnchant(ench, level, true);
 		}
 	}
 
@@ -235,7 +241,7 @@ public class ItemStackMock extends ItemStack
 	{
 		Preconditions.checkArgument(ench != null, "Enchantment cannot be null");
 
-		final ItemMeta meta = this.getItemMeta();
+		final ItemMeta meta = this.itemMeta;
 		Preconditions.checkNotNull(meta, "Meta must not be null");
 
 		return meta.getEnchantLevel(ench);
@@ -256,9 +262,77 @@ public class ItemStackMock extends ItemStack
 		return this.type == bukkit.type;
 	}
 
-	public static ItemStackMock empty()
+	private final PersistentDataContainerView pdcView = new PersistentDataContainerViewMock()
 	{
-		return EMPTY;
+		@Override
+		public <P, C> @Nullable C get(@NotNull NamespacedKey key, @NotNull PersistentDataType<P, C> type)
+		{
+			if (itemMeta == null) return null;
+
+			return itemMeta.getPersistentDataContainer().get(key, type);
+		}
+
+		@Override
+		public @NotNull Set<NamespacedKey> getKeys()
+		{
+			if (itemMeta == null) return Set.of();
+
+			return itemMeta.getPersistentDataContainer().getKeys();
+		}
+	};
+
+	@Override
+	public @NotNull PersistentDataContainerView getPersistentDataContainer()
+	{
+		return pdcView;
+	}
+
+	@Override
+	public @NotNull ItemStack withType(@NotNull Material type)
+	{
+		ItemStackMock item = new ItemStackMock(type, getAmount());
+		if (this.durability != -1) item.setDurability(this.durability);
+		item.setItemMeta(this.itemMeta);
+
+		return item;
+	}
+
+	@Override
+	public boolean containsEnchantment(@NotNull Enchantment ench)
+	{
+		if (this.itemMeta == null) return false;
+
+		return this.itemMeta.getEnchants().containsKey(ench);
+	}
+
+	@Override
+	public int removeEnchantment(@NotNull Enchantment ench)
+	{
+		if (this.itemMeta == null) return 0;
+
+		int level = this.itemMeta.getEnchantLevel(ench);
+		this.itemMeta.removeEnchant(ench);
+		return level;
+	}
+
+	@Override
+	public void removeEnchantments()
+	{
+		if (this.itemMeta == null) return;
+
+		this.itemMeta.removeEnchantments();
+	}
+
+	@Override
+	public int getMaxItemUseDuration(@NotNull LivingEntity entity)
+	{
+		//TODO
+		throw new UnimplementedOperationException();
+	}
+
+	public static ItemStack empty()
+	{
+		return EMPTY.clone();
 	}
 
 	@Override
@@ -282,7 +356,7 @@ public class ItemStackMock extends ItemStack
 		}
 		if (stack instanceof ItemStackMock bukkit)
 		{
-			return isSimilar(bukkit) && this.amount == bukkit.getAmount() && this.durability == bukkit.durability && Objects.equals(this.getLore(), bukkit.getLore()) && Objects.equals(this.getEnchantments(), bukkit.getEnchantments());
+			return isSimilar(bukkit) && this.amount == bukkit.getAmount() && this.durability == bukkit.durability && Objects.equals(this.itemMeta, bukkit.getItemMeta());
 		}
 		else
 		{
