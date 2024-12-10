@@ -331,11 +331,20 @@ public class BlockStateMock implements BlockState
 		return this.blockData.clone();
 	}
 
+	/**
+	 * This returns a copy of this {@link BlockStateMock}. Inheriters of this class must override this method!
+	 *
+	 * @return A copy of this {@link BlockStateMock}.
+	 */
 	@Override
-	public @NotNull BlockState copy()
+	public @NotNull BlockStateMock copy()
 	{
-		//TODO Auto-generated method stub
-		throw new UnimplementedOperationException();
+		if (this.getClass() != BlockStateMock.class)
+		{
+			throw new UnimplementedOperationException(this.getClass().getSimpleName() +
+					" does not provide a .copy() implementation! This is a bug.");
+		}
+		return new BlockStateMock(this);
 	}
 
 	@Override
@@ -353,13 +362,18 @@ public class BlockStateMock implements BlockState
 	}
 
 	/**
-	 * This returns a copy of this {@link BlockStateMock}. Inheritents of this class should override this method!
+	 * This returns a copy of this {@link BlockStateMock}. Inheriters of this class must override this method!
 	 *
 	 * @return A snapshot of this {@link BlockStateMock}.
 	 */
 	@NotNull
-	public BlockState getSnapshot()
+	public BlockStateMock getSnapshot()
 	{
+		if (this.getClass() != BlockStateMock.class)
+		{
+			throw new UnimplementedOperationException(this.getClass().getSimpleName() +
+					" does not provide a .getSnapshot() implementation! This is a bug.");
+		}
 		return new BlockStateMock(this);
 	}
 
