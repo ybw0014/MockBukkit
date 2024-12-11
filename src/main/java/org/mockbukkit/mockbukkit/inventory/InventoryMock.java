@@ -96,6 +96,18 @@ public class InventoryMock implements Inventory
 	}
 
 	/**
+	 * Copy constructor. Holder is copied by reference, inventory contents are cloned.
+	 * @param other Inventory to copy.
+	 */
+	public InventoryMock(@NotNull Inventory other)
+	{
+		this.holder = other.getHolder();
+		this.type = other.getType();
+		this.items = new ItemStack[other.getSize()];
+		this.setContents(other.getContents());
+	}
+
+	/**
 	 * Asserts that a certain condition is true for all items, even {@code nulls}, in this inventory.
 	 *
 	 * @param condition The condition to check for.
@@ -768,4 +780,32 @@ public class InventoryMock implements Inventory
 				&& Objects.equals(customTitle, that.customTitle);
 	}
 
+	/** Note: does not compare holder or viewers (matches spigot/paper). */
+	@Override
+	public boolean equals(Object o)
+	{
+		if (this == o) return true;
+		if (!(o instanceof InventoryMock that)) return false;
+		return maxStackSize == that.maxStackSize
+				&& Objects.deepEquals(items, that.items)
+				&& type == that.type;
+	}
+
+	@Override
+	public int hashCode()
+	{
+		return Objects.hash(Arrays.hashCode(items), type, maxStackSize);
+	}
+
+	@Override
+	public String toString()
+	{
+		return "InventoryMock{" +
+				"type=" + type +
+				", maxStackSize=" + maxStackSize +
+				", holder=" + (holder != null ? Objects.toIdentityString(holder) : null) +
+				", viewers=" + viewers.size() +
+				", items=" + Arrays.toString(items) +
+				'}';
+	}
 }

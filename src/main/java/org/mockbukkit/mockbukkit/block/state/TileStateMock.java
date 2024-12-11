@@ -4,7 +4,6 @@ import org.mockbukkit.mockbukkit.exception.UnimplementedOperationException;
 import org.mockbukkit.mockbukkit.persistence.PersistentDataContainerMock;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockState;
 import org.bukkit.block.TileState;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.jetbrains.annotations.NotNull;
@@ -83,6 +82,12 @@ public abstract class TileStateMock extends BlockStateMock implements TileState
 	public int hashCode()
 	{
 		return Objects.hash(super.hashCode(), container);
+	}
+
+	@Override
+	protected String toStringInternal()
+	{
+		return super.toStringInternal() + ", container=" + container;
 	}
 
 }

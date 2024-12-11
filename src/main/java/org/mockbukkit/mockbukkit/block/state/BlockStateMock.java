@@ -403,6 +403,36 @@ public class BlockStateMock implements BlockState
 
 	}
 
+	// Implement toStringInternal() instead of overriding toString()
+	@Override
+	public String toString()
+	{
+		return this.getClass().getSimpleName() + '{' + toStringInternal() + '}';
+	}
+
+	/**
+	 * Provides the contents of {@link #toString()} .
+	 * <p>Implementors must call super as in the following example.</p>
+	 *
+	 * <pre>{@code
+	 *	@Override
+	 *	protected String toStringInternal()
+	 *	{
+	 *		return super.toStringInternal() +
+	 *				", member1=" + member1 +
+	 *				", member2=" + member2;
+	 *	}
+	 * }</pre>
+	 * @return Comma separated list of properties and values.
+	 */
+	protected String toStringInternal()
+	{
+		return "block=" + block +
+				", blockData=" + blockData +
+				", material=" + material +
+				", metadataTable=" + metadataTable;
+	}
+
 	/**
 	 * Attempts to construct a BlockStateMock by the provided block.
 	 * Will return a basic {@link BlockStateMock} if no implementation is found.
