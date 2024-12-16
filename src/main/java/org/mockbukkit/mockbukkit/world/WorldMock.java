@@ -79,6 +79,7 @@ import org.bukkit.util.BoundingBox;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.StructureSearchResult;
 import org.bukkit.util.Vector;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.mockbukkit.mockbukkit.AsyncCatcher;
@@ -139,6 +140,7 @@ public class WorldMock implements World
 
 	private String name = "World";
 	private Location spawnLocation;
+	private long gameTime = 0;
 	private long fullTime = 0;
 	private int weatherDuration;
 	private boolean thundering;
@@ -2781,8 +2783,19 @@ public class WorldMock implements World
 	@Override
 	public long getGameTime()
 	{
-		// TODO Auto-generated method stub
-		throw new UnimplementedOperationException();
+		return this.gameTime;
+	}
+
+	/**
+	 * Sets the full in-game time on this world since the world generation.
+	 *
+	 * @param time The current absolute time since the world generation.
+	 */
+	@ApiStatus.Internal
+	public void setGameTime(long time)
+	{
+		Preconditions.checkArgument(time >= 0, "Time must be greater or equal than 0");
+		this.gameTime = time;
 	}
 
 	@Override
