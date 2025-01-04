@@ -1785,7 +1785,7 @@ public class WorldMock implements World
 	@Override
 	public String @NotNull [] getGameRules()
 	{
-		return gameRules.values().stream().map(Object::toString).toList().toArray(new String[0]);
+		return gameRules.keySet().stream().map(GameRule::getName).toList().toArray(new String[0]);
 	}
 
 	@Override
