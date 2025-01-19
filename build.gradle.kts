@@ -94,6 +94,16 @@ tasks {
 	jacoco {
 		toolVersion = "0.8.12"
 	}
+
+	register("updateResources") {
+		dependsOn(":metaminer:runServer")
+		doLast {
+			copy {
+				from("./metaminer/run/plugins/MetaMiner")
+				into(".")
+			}
+		}
+	}
 }
 
 sourceSets {
