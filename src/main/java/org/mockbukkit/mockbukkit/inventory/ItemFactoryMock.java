@@ -4,6 +4,9 @@ import com.google.common.base.Preconditions;
 import io.papermc.paper.registry.set.RegistryKeySet;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.event.HoverEventSource;
+import net.kyori.adventure.text.format.Style;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.hover.content.Content;
 import org.bukkit.Color;
@@ -13,6 +16,7 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemFactory;
+import org.bukkit.inventory.ItemRarity;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
@@ -159,7 +163,24 @@ public class ItemFactoryMock implements ItemFactory
 	@Override
 	public @NotNull Component displayName(@NotNull ItemStack itemStack)
 	{
-		return itemStack.displayName();
+		Component component;
+		ItemMeta itemMeta = itemStack.getItemMeta();
+		if (itemMeta != null && itemMeta.customName() != null)
+		{
+			component = Component.empty().append(itemMeta.customName()).style(Style.style(TextDecoration.ITALIC));
+		}
+		else
+		{
+			component = Component.translatable(itemStack.getType().asItemType().translationKey());
+		}
+		component = Component.translatable("chat.square_brackets", component);
+		if (!itemStack.isEmpty() && itemMeta != null)
+		{
+			ItemRarity rarity = itemMeta.hasRarity() ? itemMeta.getRarity() : ItemRarity.COMMON;
+			component = component.style(Style.style(rarity.color()))
+					.hoverEvent(HoverEventSource.unbox(HoverEvent.showItem(itemStack.getType().asItemType(), itemStack.getAmount())));
+		}
+		return component;
 	}
 
 	@Override
