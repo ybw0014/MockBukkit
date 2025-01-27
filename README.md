@@ -3,14 +3,11 @@
     <a href="https://github.com/MockBukkit/MockBukkit/actions/">
         <img alt="Build Status" src="https://github.com/MockBukkit/MockBukkit/actions/workflows/publish.yml/badge.svg" />
     </a>
-    <a href="https://mockbukkit.readthedocs.io/en/v1.21/?badge=v1.21">
-        <img alt="Documentation Status" src="https://readthedocs.org/projects/mockbukkit/badge/?version=v1.21" />
+    <a href="https://search.maven.org/search?q=mockbukkit">
+        <img alt="Maven Central" src="https://img.shields.io/maven-central/v/org.mockbukkit.mockbukkit/mockbukkit-v1.21?color=1bcc94&logo=apache-maven" />
     </a>
-    <a href="https://search.maven.org/search?q=MockBukkit">
-        <img alt="Maven Central" src="https://img.shields.io/maven-central/v/com.github.seeseemelk/MockBukkit-v1.21?color=1bcc94&logo=apache-maven" />
-    </a>
-    <a href="https://javadoc.io/doc/com.github.seeseemelk/MockBukkit-v1.21">
-        <img alt="Javadocs" src="https://javadoc.io/badge2/com.github.seeseemelk/MockBukkit-v1.21/javadoc.svg" />
+    <a href="https://javadoc.io/doc/org.mockbukkit.mockbukkit/mockbukkit-v1.21">
+        <img alt="Javadocs" src="https://javadoc.io/badge2/org.mockbukkit.mockbukkit/mockbukkit-v1.21/javadoc.svg" />
     </a>
     <a href="https://sonarcloud.io/project/issues?resolved=false&types=CODE_SMELL&id=MockBukkit_MockBukkit">
         <img alt="Code Smells" src="https://sonarcloud.io/api/project_badges/measure?project=MockBukkit_MockBukkit&metric=code_smells">
@@ -51,7 +48,7 @@ MockBukkit can easily be included in your project using either Maven or gradle.
 > [!TIP]
 > Currently, the newest version available is
 >
-> [![ALTERNATE-TEXT](https://img.shields.io/maven-central/v/com.github.seeseemelk/MockBukkit-v1.21?color=1bcc94&logo=apache-maven)](https://search.maven.org/search?q=MockBukkit)
+> [![ALTERNATE-TEXT](https://img.shields.io/maven-central/v/org.mockbukkit.mockbukkit/mockbukkit-v1.21?color=1bcc94&logo=apache-maven)](https://search.maven.org/search?q=MockBukkit)
 
 
 > Note: The Breaking Changes intended for 3.0 were already made in 2.145.1. Due to an Error it didn't get properly tagged
@@ -70,7 +67,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation 'com.github.seeseemelk:MockBukkit-v1.21:[version]'
+    testImplementation 'org.mockbukkit.mockbukkit:mockbukkit-v1.21:[version]'
 }
 ```
 
@@ -113,8 +110,8 @@ MockBukkit can easily be included in Maven using the default Maven Central and P
 
 <dependencies>
   <dependency>
-    <groupId>com.github.seeseemelk</groupId>
-    <artifactId>MockBukkit-v1.21</artifactId>
+    <groupId>org.mockbukkit.mockbukkit</groupId>
+    <artifactId>mockbukkit-v1.21</artifactId>
     <version>[version]</version>
     <scope>test</scope>
   </dependency>
@@ -191,7 +188,7 @@ This is useful when the plugin you are testing may be looking at other loaded pl
 The following piece of code creates a placeholder plugin that extends JavaPlugin.
 
 ```java
-MockPlugin plugin = MockBukkit.createMockPlugin()
+PluginMock plugin = MockBukkit.createMockPlugin();
 ```
 
 ### Mock Players
@@ -270,7 +267,7 @@ If you want to see some projects that are using MockBukkit right now, feel free 
 
 You can also have a look at our documentation where we outline various examples and tricks on how to use MockBukkit
 already:
-https://mockbukkit.readthedocs.io/en/latest/index.html
+https://docs.mockbukkit.org
 
 ## :gift_heart: Sponsors
 
